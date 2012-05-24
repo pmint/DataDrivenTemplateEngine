@@ -25,8 +25,8 @@ Model ---...---> View を書きやすくための提案
 
 
 
-Output
-------
+Data
+----
 
 	### Model->new: bless( {
 	###                      root => bless( {
@@ -77,6 +77,11 @@ Output
 	###                                            ]
 	###                                     }, 'Model::_root' )
 	###                    }, 'Model' )
+
+
+
+Output
+------
 
 	<html>
 	<head>
