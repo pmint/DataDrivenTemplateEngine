@@ -123,7 +123,7 @@ package main;
 			$sub = '_'.$sub;
 			# call: $sub
 			no strict qw/refs/;
-			$ret = *$sub->($model, $topicpath);
+			$ret = $sub->($model, $topicpath);
 			use strict qw/refs/;
 		}
 		else {
