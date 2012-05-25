@@ -9,18 +9,18 @@ package Model;
 		
 		# sample data (complex and classified structure)
 		bless {
-			root => Model::_root->new([
+			root => [
 				Model::_entry->new([
-						Model::_title->new('TITLE:1'),
-						Model::_body->new('BODY:1'),
-						Model::_noop->new([Model::_tag->new('TAG:11'), Model::_tag->new('TAG:12'), ]),
+						'TITLE:1',
+						'BODY:1',
+						['TAG:11', 'TAG:12', ],
 				]),
 				Model::_entry->new([
-						Model::_title->new('TITLE:2'),
-						Model::_body->new("BODY:21<br />BODY:22<br />BODY:23"),
-						Model::_noop->new([Model::_tag->new('TAG:21'), Model::_tag->new('TAG:22'), Model::_tag->new('TAG:23'), ]),
+						'TITLE:2',
+						"BODY:21<br />BODY:22<br />BODY:23",
+						['TAG:21', 'TAG:22', 'TAG:23', ],
 				]),
-			]),
+			],
 		}, $class;
 	}
 
@@ -49,17 +49,7 @@ package Model::_base;
 		$self->{c};
 	}
 
-package Model::_root;
-use base qw/Model::_base/;
 package Model::_entry;
-use base qw/Model::_base/;
-package Model::_title;
-use base qw/Model::_base/;
-package Model::_body;
-use base qw/Model::_base/;
-package Model::_tag;
-use base qw/Model::_base/;
-package Model::_noop;
 use base qw/Model::_base/;
 
 
@@ -122,54 +112,92 @@ package main;
 
 	sub _markup
 	{
-		my($model, $rule) = @_;
-		### assert: UNIVERSAL::isa($model, 'Model::_base') or ref($model) eq 'ARRAY' or not ref $model
-		### assert: ref $rule eq 'HASH'
+		my($model, $topicpath) = @_;
+		### _markup $topicpath: $topicpath
 		my $ret;
-		my $c;
 		
-		# serialize
-		if (ref $model->c and UNIVERSAL::isa($model->c, 'Model::_base')){
-			$c = _markup($model->c, $rule);
-		}
-		elsif (ref $model->c eq 'ARRAY'){
-			### assert: not defined $c
-			foreach my $e (@{$model->c}){
-				$c .= _markup($e, $rule);
-			}
+		if (ref $model){
+			# serialize
+			my $sub = ref $model;
+			$sub =~ s/::/__/g;
+			$sub = '_'.$sub;
+			# call: $sub
+			no strict qw/refs/;
+			$ret = *$sub->($model, $topicpath);
+			use strict qw/refs/;
 		}
 		else {
-			### assert: ref $model and not ref $model->c
-			$c = $model->c;
-		}
-		
-		# markup
-		if ($rule->{ref $model}){
-			my $template = $rule->{ref $model};
-			$template =~ s{\$c}{$c}g;
-			$ret = $template;
-		}
-		else {
-			$ret = $c;
+			$ret = $model;
 		}
 		
 		$ret;
+	}
+
+	sub _Model
+	{
+		my($model, $topicpath) = @_;
+		
+		_markup($model->root, $topicpath.' '.(ref $model));
+	}
+
+	sub _ARRAY
+	{
+		my($model, $topicpath) = @_;
+		
+		my $ret;
+		
+		if ($topicpath =~ /Model::_entry$/s){
+			### [markup Title]
+			$ret .= qq{\n  <div class="title"> \n}.$model->[0].qq{\n  </div> \n};
+			### [markup Body]
+			$ret .= qq{\n  <div class="body"> \n}.$model->[1].qq{\n  </div> \n};
+			
+			# Tags
+			foreach my $e (@$model[2..$#$model]){
+				$ret .= qq{\n  <div>}._markup($e, $topicpath.' '.(ref $model)).qq{</div>\n};
+			}
+		}
+		elsif ($topicpath =~ /Model::_entry ARRAY$/s){
+			### [markup Tags]
+			foreach my $e (@$model){
+				$ret .= ' <span class="tag">'._markup($e, $topicpath.' '.(ref $model)).'</span> ';
+			}
+		}
+		else {
+			foreach my $e (@$model){
+				$ret .= '{'._markup($e, $topicpath.' '.(ref $model))."}\n";
+			}
+		}
+		
+		$ret;
+	}
+
+	sub _HASH
+	{
+		my($model, $topicpath) = @_;
+		
+		my $ret;
+		
+		foreach my $key (keys %$model){
+			$ret .= _markup($model->{$key}, $topicpath.' '.(ref $model));
+		}
+		
+		$ret;
+	}
+
+	sub _Model___entry
+	{
+		my($model, $topicpath) = @_;
+		
+		qq{\n <div class="entry"> \n}._markup($model->c, $topicpath.' '.(ref $model)).qq{\n </div> \n};
 	}
 
 {
 	# main::entrypoint
 	
 	my $m = Model->new;
-	my $markup_rule = {
-		'Model::_entry' => qq{\n<div class="entry">\n \$c \n</div>\n},
-		'Model::_title' => qq{\n<div class="title">\n \$c \n</div>\n},
-		'Model::_body' => qq{\n<div class="body">\n \$c \n</div>\n},
-		'Model::_tag' => qq{<span class="tag"> \$c </span>},
-		# 'Model::_root',
-		# 'Model::_noop',
-	};
 	
-	print View->new->inject(_markup($m->root, $markup_rule));
+	print View->new->inject(_markup($m));
 }
 
 
@@ -185,54 +213,68 @@ DDT sample - Data-Driven HTML Template engine suggestion
 =head1 Output
 
 ### Model->new: bless( {
-###                      root => bless( {
-###                                       c => [
-###                                              bless( {
-###                                                       c => [
-###                                                              bless( {
-###                                                                       c => 'TITLE:1'
-###                                                                     }, 'Model::_title' ),
-###                                                              bless( {
-###                                                                       c => 'BODY:1'
-###                                                                     }, 'Model::_body' ),
-###                                                              bless( {
-###                                                                       c => [
-###                                                                              bless( {
-###                                                                                       c => 'TAG:11'
-###                                                                                     }, 'Model::_tag' ),
-###                                                                              bless( {
-###                                                                                       c => 'TAG:12'
-###                                                                                     }, 'Model::_tag' )
-###                                                                            ]
-###                                                                     }, 'Model::_noop' )
-###                                                            ]
-###                                                     }, 'Model::_entry' ),
-###                                              bless( {
-###                                                       c => [
-###                                                              bless( {
-###                                                                       c => 'TITLE:2'
-###                                                                     }, 'Model::_title' ),
-###                                                              bless( {
-###                                                                       c => 'BODY:21<br />BODY:22<br />BODY:23'
-###                                                                     }, 'Model::_body' ),
-###                                                              bless( {
-###                                                                       c => [
-###                                                                              bless( {
-###                                                                                       c => 'TAG:21'
-###                                                                                     }, 'Model::_tag' ),
-###                                                                              bless( {
-###                                                                                       c => 'TAG:22'
-###                                                                                     }, 'Model::_tag' ),
-###                                                                              bless( {
-###                                                                                       c => 'TAG:23'
-###                                                                                     }, 'Model::_tag' )
-###                                                                            ]
-###                                                                     }, 'Model::_noop' )
-###                                                            ]
-###                                                     }, 'Model::_entry' )
-###                                            ]
-###                                     }, 'Model::_root' )
+###                      root => [
+###                                bless( {
+###                                         c => [
+###                                                'TITLE:1',
+###                                                'BODY:1',
+###                                                [
+###                                                  'TAG:11',
+###                                                  'TAG:12'
+###                                                ]
+###                                              ]
+###                                       }, 'Model::_entry' ),
+###                                bless( {
+###                                         c => [
+###                                                'TITLE:2',
+###                                                'BODY:21<br />BODY:22<br />BODY:23',
+###                                                [
+###                                                  'TAG:21',
+###                                                  'TAG:22',
+###                                                  'TAG:23'
+###                                                ]
+###                                              ]
+###                                       }, 'Model::_entry' )
+###                              ]
 ###                    }, 'Model' )
+
+### _markup $topicpath: undef
+
+### _markup $topicpath: ' Model'
+
+### _markup $topicpath: ' Model ARRAY'
+
+### _markup $topicpath: ' Model ARRAY Model::_entry'
+
+### [markup Title]
+
+### [markup Body]
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY'
+
+### [markup Tags]
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+
+### _markup $topicpath: ' Model ARRAY'
+
+### _markup $topicpath: ' Model ARRAY Model::_entry'
+
+### [markup Title]
+
+### [markup Body]
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY'
+
+### [markup Tags]
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+
+### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
 
 <html>
 <head>
@@ -259,31 +301,36 @@ DDT sample - Data-Driven HTML Template engine suggestion
 	</style>
 </head>
 <body>
-	<div>
-<div class="entry">
- 
-<div class="title">
- TITLE:1 
-</div>
+	<div>{
+ <div class="entry"> 
 
-<div class="body">
- BODY:1 
-</div>
-<span class="tag"> TAG:11 </span><span class="tag"> TAG:12 </span> 
-</div>
+  <div class="title"> 
+TITLE:1
+  </div> 
 
-<div class="entry">
- 
-<div class="title">
- TITLE:2 
-</div>
+  <div class="body"> 
+BODY:1
+  </div> 
 
-<div class="body">
- BODY:21<br />BODY:22<br />BODY:23 
-</div>
-<span class="tag"> TAG:21 </span><span class="tag"> TAG:22 </span><span class="tag"> TAG:23 </span> 
-</div>
+  <div> <span class="tag">TAG:11</span>  <span class="tag">TAG:12</span> </div>
+
+ </div> 
+}
+{
+ <div class="entry"> 
+
+  <div class="title"> 
+TITLE:2
+  </div> 
+
+  <div class="body"> 
+BODY:21<br />BODY:22<br />BODY:23
+  </div> 
+
+  <div> <span class="tag">TAG:21</span>  <span class="tag">TAG:22</span>  <span class="tag">TAG:23</span> </div>
+
+ </div> 
+}
 </div>
 </body>
 </html>
-
