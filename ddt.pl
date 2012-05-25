@@ -47,12 +47,6 @@ use base qw/Model::_base/;
 		$class->SUPER::new($content);
 	}
 
-	sub root
-	{
-		my $self = shift;
-		$self->{root};
-	}
-
 
 
 package View;
