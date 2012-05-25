@@ -2,34 +2,6 @@ use utf8;
 use strict;
 use Smart::Comments;
 
-package Model;
-	sub new
-	{
-		my $class = shift;
-		
-		# sample data (complex and classified structure)
-		bless {
-			root => [
-				Model::_entry->new([
-						'TITLE:1',
-						'BODY:1',
-						['TAG:11', 'TAG:12', ],
-				]),
-				Model::_entry->new([
-						'TITLE:2',
-						"BODY:21<br />BODY:22<br />BODY:23",
-						['TAG:21', 'TAG:22', 'TAG:23', ],
-				]),
-			],
-		}, $class;
-	}
-
-	sub root
-	{
-		my $self = shift;
-		$self->{root};
-	}
-
 package Model::_base;
 	sub new
 	{
@@ -51,6 +23,35 @@ package Model::_base;
 
 package Model::_entry;
 use base qw/Model::_base/;
+
+package Model;
+use base qw/Model::_base/;
+
+	sub new
+	{
+		my $class = shift;
+		my $content = [
+			Model::_entry->new({
+					title => 'TITLE:1',
+					body => 'BODY:1',
+					tags => ['TAG:11', 'TAG:12', ],
+			}),
+			Model::_entry->new({
+					title => 'TITLE:2',
+					body => "BODY:21<br />BODY:22<br />BODY:23",
+					tags => ['TAG:21', 'TAG:22', 'TAG:23', ],
+			}),
+		];
+		
+		# sample data (complex and classified structure)
+		$class->SUPER::new($content);
+	}
+
+	sub root
+	{
+		my $self = shift;
+		$self->{root};
+	}
 
 
 
@@ -112,8 +113,8 @@ package main;
 
 	sub _markup
 	{
-		my($model, $topicpath) = @_;
-		### _markup $topicpath: $topicpath
+		my($model, $path) = @_;
+		### _markup $path: $path
 		my $ret;
 		
 		if (ref $model){
@@ -123,8 +124,20 @@ package main;
 			$sub = '_'.$sub;
 			# call: $sub
 			no strict qw/refs/;
-			$ret = $sub->($model, $topicpath);
+			$ret = $sub->($model, $path.' '.(ref $model));
 			use strict qw/refs/;
+		}
+		elsif ($path =~ /Model::_entry HASH->{title}$/s){
+			### [markup Title]
+			$ret .= qq{\n  <div class="title"> \n $model \n  </div> \n};
+		}
+		elsif ($path =~ /Model::_entry HASH->{body}$/s){
+			### [markup Body]
+			$ret .= qq{\n  <div class="body"> \n $model \n  </div> \n};
+		}
+		elsif ($path =~ /Model::_entry HASH->{tags} ARRAY->\[\d+\]$/s){
+			### [markup Tag]
+			$ret .= qq{ <span class="tag"> $model </span> };
 		}
 		else {
 			$ret = $model;
@@ -133,63 +146,59 @@ package main;
 		$ret;
 	}
 
-	sub _Model
-	{
-		my($model, $topicpath) = @_;
-		
-		_markup($model->root, $topicpath.' '.(ref $model));
-	}
-
 	sub _ARRAY
 	{
-		my($model, $topicpath) = @_;
+		my($model, $path) = @_;
 		
 		my $ret;
 		
-		if ($topicpath =~ /Model::_entry$/s){
-			### [markup Title]
-			$ret .= qq{\n  <div class="title"> \n}.$model->[0].qq{\n  </div> \n};
-			### [markup Body]
-			$ret .= qq{\n  <div class="body"> \n}.$model->[1].qq{\n  </div> \n};
-			
-			# Tags
-			foreach my $e (@$model[2..$#$model]){
-				$ret .= qq{\n  <div>}._markup($e, $topicpath.' '.(ref $model)).qq{</div>\n};
-			}
+		$ret .= "\n[ ";
+		### assert: $path =~ / ARRAY$/s
+		foreach my $i (0 .. $#$model){
+			$ret .= _markup($model->[$i], $path.'->['.$i.']');
 		}
-		elsif ($topicpath =~ /Model::_entry ARRAY$/s){
-			### [markup Tags]
-			foreach my $e (@$model){
-				$ret .= ' <span class="tag">'._markup($e, $topicpath.' '.(ref $model)).'</span> ';
-			}
-		}
-		else {
-			foreach my $e (@$model){
-				$ret .= '{'._markup($e, $topicpath.' '.(ref $model))."}\n";
-			}
-		}
+		$ret .= " ]\n";
 		
 		$ret;
 	}
 
 	sub _HASH
 	{
-		my($model, $topicpath) = @_;
+		my($model, $path) = @_;
 		
 		my $ret;
 		
+		### assert: $path =~ / HASH$/s
 		foreach my $key (keys %$model){
-			$ret .= _markup($model->{$key}, $topicpath.' '.(ref $model));
+			$ret .= _markup($model->{$key}, $path.'->{'.$key.'}');
 		}
 		
 		$ret;
 	}
 
+	sub _Model
+	{
+		my($model, $path) = @_;
+		
+		_markup($model->c, $path);
+	}
+
 	sub _Model___entry
 	{
-		my($model, $topicpath) = @_;
+		my($model, $path) = @_;
+		my $ret;
 		
-		qq{\n <div class="entry"> \n}._markup($model->c, $topicpath.' '.(ref $model)).qq{\n </div> \n};
+		### assert: $path =~ / Model::_entry$/s
+		# $ret .= qq{\n <div class="entry"> \n}._markup($model->c, $path).qq{\n </div> \n};
+		
+		# In case of fixed order
+		$ret .= qq{\n <div class="entry"> \n};
+		$ret .= _markup($model->c->{title}, $path.' HASH->{title}');
+		$ret .= _markup($model->c->{body}, $path.' HASH->{body}');
+		$ret .= _markup($model->c->{tags}, $path.' HASH->{tags}');
+		$ret .= qq{\n </div> \n};
+		
+		$ret;
 	}
 
 {
@@ -212,125 +221,137 @@ DDT sample - Data-Driven HTML Template engine suggestion
 
 =head1 Output
 
+
 ### Model->new: bless( {
-###                      root => [
-###                                bless( {
-###                                         c => [
-###                                                'TITLE:1',
-###                                                'BODY:1',
-###                                                [
-###                                                  'TAG:11',
-###                                                  'TAG:12'
-###                                                ]
-###                                              ]
-###                                       }, 'Model::_entry' ),
-###                                bless( {
-###                                         c => [
-###                                                'TITLE:2',
-###                                                'BODY:21<br />BODY:22<br />BODY:23',
-###                                                [
-###                                                  'TAG:21',
-###                                                  'TAG:22',
-###                                                  'TAG:23'
-###                                                ]
-###                                              ]
-###                                       }, 'Model::_entry' )
-###                              ]
+###                      c => [
+###                             bless( {
+###                                      c => {
+###                                             body => 'BODY:1',
+###                                             tags => [
+###                                                       'TAG:11',
+###                                                       'TAG:12'
+###                                                     ],
+###                                             title => 'TITLE:1'
+###                                           }
+###                                    }, 'Model::_entry' ),
+###                             bless( {
+###                                      c => {
+###                                             body => 'BODY:21<br />BODY:22<br />BODY:23',
+###                                             tags => [
+###                                                       'TAG:21',
+###                                                       'TAG:22',
+###                                                       'TAG:23'
+###                                                     ],
+###                                             title => 'TITLE:2'
+###                                           }
+###                                    }, 'Model::_entry' )
+###                           ]
 ###                    }, 'Model' )
 
-### _markup $topicpath: undef
+### _markup $path: undef
 
-### _markup $topicpath: ' Model'
+### _markup $path: ' Model'
 
-### _markup $topicpath: ' Model ARRAY'
+### _markup $path: ' Model ARRAY->[0]'
 
-### _markup $topicpath: ' Model ARRAY Model::_entry'
-
-### [markup Title]
-
-### [markup Body]
-
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY'
-
-### [markup Tags]
-
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
-
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
-
-### _markup $topicpath: ' Model ARRAY'
-
-### _markup $topicpath: ' Model ARRAY Model::_entry'
+### _markup $path: ' Model ARRAY->[0] Model::_entry HASH->{title}'
 
 ### [markup Title]
 
+### _markup $path: ' Model ARRAY->[0] Model::_entry HASH->{body}'
+
 ### [markup Body]
 
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY'
+### _markup $path: ' Model ARRAY->[0] Model::_entry HASH->{tags}'
 
-### [markup Tags]
+### _markup $path: ' Model ARRAY->[0] Model::_entry HASH->{tags} ARRAY->[0]'
 
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+### [markup Tag]
 
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+### _markup $path: ' Model ARRAY->[0] Model::_entry HASH->{tags} ARRAY->[1]'
 
-### _markup $topicpath: ' Model ARRAY Model::_entry ARRAY ARRAY'
+### [markup Tag]
+
+### _markup $path: ' Model ARRAY->[1]'
+
+### _markup $path: ' Model ARRAY->[1] Model::_entry HASH->{title}'
+
+### [markup Title]
+
+### _markup $path: ' Model ARRAY->[1] Model::_entry HASH->{body}'
+
+### [markup Body]
+
+### _markup $path: ' Model ARRAY->[1] Model::_entry HASH->{tags}'
+
+### _markup $path: ' Model ARRAY->[1] Model::_entry HASH->{tags} ARRAY->[0]'
+
+### [markup Tag]
+
+### _markup $path: ' Model ARRAY->[1] Model::_entry HASH->{tags} ARRAY->[1]'
+
+### [markup Tag]
+
+### _markup $path: ' Model ARRAY->[1] Model::_entry HASH->{tags} ARRAY->[2]'
+
+### [markup Tag]
 
 <html>
 <head>
-	<title>DDT sample</title>
-	<style>
-		.entry {
-			margin: 2em 0;
-		}
-		.title {
-			border: solid navy;
-			border-width: thin thin thin 1em;
-			font-size: x-large;
-			padding: 0 1ex;
-		}
-		.body {
-			padding: 1em 1em 1em 2em;
-		}
-		.tag {
-			border: dashed silver thin;
-			margin: 0 1ex;
-			padding: 0 1ex;
-			font-size: x-small;
-		}
-	</style>
+        <title>DDT sample</title>
+        <style>
+                .entry {
+                        margin: 2em 0;
+                }
+                .title {
+                        border: solid navy;
+                        border-width: thin thin thin 1em;
+                        font-size: x-large;
+                        padding: 0 1ex;
+                }
+                .body {
+                        padding: 1em 1em 1em 2em;
+                }
+                .tag {
+                        border: dashed silver thin;
+                        margin: 0 1ex;
+                        padding: 0 1ex;
+                        font-size: x-small;
+                }
+        </style>
 </head>
 <body>
-	<div>{
- <div class="entry"> 
+        <div>
+[
+ <div class="entry">
 
-  <div class="title"> 
-TITLE:1
-  </div> 
+  <div class="title">
+ TITLE:1
+  </div>
 
-  <div class="body"> 
-BODY:1
-  </div> 
+  <div class="body">
+ BODY:1
+  </div>
 
-  <div> <span class="tag">TAG:11</span>  <span class="tag">TAG:12</span> </div>
+[  <span class="tag"> TAG:11 </span>  <span class="tag"> TAG:12 </span>  ]
 
- </div> 
-}
-{
- <div class="entry"> 
+ </div>
 
-  <div class="title"> 
-TITLE:2
-  </div> 
+ <div class="entry">
 
-  <div class="body"> 
-BODY:21<br />BODY:22<br />BODY:23
-  </div> 
+  <div class="title">
+ TITLE:2
+  </div>
 
-  <div> <span class="tag">TAG:21</span>  <span class="tag">TAG:22</span>  <span class="tag">TAG:23</span> </div>
+  <div class="body">
+ BODY:21<br />BODY:22<br />BODY:23
+  </div>
 
- </div> 
-}
+[  <span class="tag"> TAG:21 </span>  <span class="tag"> TAG:22 </span>  <span class="tag"> TAG:23 </span>  ]
+
+ </div>
+ ]
 </div>
 </body>
 </html>
+
