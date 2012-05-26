@@ -15,9 +15,6 @@ Modelの内部をどうマークアップするかが問題。
 
 例えば、最初のentryのtitle要素を指定する記述…
 
-    Model ARRAY->[0] Model::_entry HASH->{title}
+    Model::_entries ARRAY->[0] Model::_entry HASH->{title}
 
 この要素をどうマークアップするかをプログラムコードで記述。
-
-ライブラリー化できそうなのはmain::_markup()の一部、組み込み型に対応するコード(main::_HASH(), main::_ARRAY())くらい？
-むやみに独自ルールを増やしてもね…
