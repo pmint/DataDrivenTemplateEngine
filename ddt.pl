@@ -127,6 +127,7 @@ DDT sample - Data-Driven HTML Template engine suggestion
 
 =head1 Output
 
+
 ### Model->new
 
 ### _markup $path: undef
@@ -141,23 +142,27 @@ DDT sample - Data-Driven HTML Template engine suggestion
 
 ### call: '__Model___entry'
 
-### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry->{title}'
+### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry'
+
+### call: '__HASH'
+
+### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry HASH->{title}'
 
 ### [markup Title]
 
-### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry->{body}'
+### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry HASH->{body}'
 
 ### [markup Body]
 
-### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry->{tags}'
+### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry HASH->{tags}'
 
 ### call: '__ARRAY'
 
-### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry->{tags} ARRAY->[0]'
+### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry HASH->{tags} ARRAY->[0]'
 
 ### [markup Tag]
 
-### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry->{tags} ARRAY->[1]'
+### _markup $path: ' Model::_entries ARRAY->[0] Model::_entry HASH->{tags} ARRAY->[1]'
 
 ### [markup Tag]
 
@@ -165,27 +170,31 @@ DDT sample - Data-Driven HTML Template engine suggestion
 
 ### call: '__Model___entry'
 
-### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry->{title}'
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry'
+
+### call: '__HASH'
+
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry HASH->{title}'
 
 ### [markup Title]
 
-### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry->{body}'
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry HASH->{body}'
 
 ### [markup Body]
 
-### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry->{tags}'
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry HASH->{tags}'
 
 ### call: '__ARRAY'
 
-### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry->{tags} ARRAY->[0]'
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry HASH->{tags} ARRAY->[0]'
 
 ### [markup Tag]
 
-### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry->{tags} ARRAY->[1]'
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry HASH->{tags} ARRAY->[1]'
 
 ### [markup Tag]
 
-### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry->{tags} ARRAY->[2]'
+### _markup $path: ' Model::_entries ARRAY->[1] Model::_entry HASH->{tags} ARRAY->[2]'
 
 ### [markup Tag]
 
