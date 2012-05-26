@@ -18,3 +18,12 @@ Modelの内部をどうマークアップするかが問題。
     Model::_entries ARRAY->[0] Model::_entry HASH->{title}
 
 この要素をどうマークアップするかをプログラムコードで記述。
+
+
+
+実装
+----
+
+* 仕組みはDDT.pm
+* Models.pm、Views.pmの仕様はなんでもいい。
+* ddt.pl内のカスタマイズ版DDT (DDT::_entries)がModels.pm、Views.pmを扱えればいい。
