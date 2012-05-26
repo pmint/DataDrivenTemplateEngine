@@ -25,5 +25,5 @@ Modelの内部をどうマークアップするかが問題。
 ----
 
 * 仕組みはDDT.pm
-* Models.pm、Views.pmの仕様はなんでもいい。
-* ddt.pl内のカスタマイズ版DDT (DDT::_entries)がModels.pm、Views.pmを扱えればいい。
+* モデル(Models.pm)、ビュー(Views.pm)の仕様はなんでもいい。
+* ddt.pl内のカスタマイズ版DDT (DDT::_entries)がモデルとビューを扱えればいい。
