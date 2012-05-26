@@ -78,7 +78,7 @@ use base qw/DDT/;
 		}
 		else {
 			### default order (not defined) at: $path
-			keys %$model;
+			$self->SUPER::__HASH_keys_order($model, $path);
 		}
 	}
 
