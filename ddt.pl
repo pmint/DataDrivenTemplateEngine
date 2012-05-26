@@ -38,18 +38,10 @@ use base qw/DDT/;
 		my $self = shift;
 		my($model, $path) = @_;
 		### assert: $path =~ / Model::_entry$/s
-		my $ret;
 		
-		# In case of fixed order
-		$ret .= qq{\n <div class="entry"> \n};
-		
-		foreach my $key (qw/title body tags/){
-			$ret .= $self->_markup($model->c->{$key}, $path.'->{'.$key.'}');
-		}
-		
-		$ret .= qq{\n </div> \n};
-		
-		$ret;
+		qq{\n <div class="entry"> \n}
+			.$self->_markup($model->c, $path)
+			.qq{\n </div> \n};
 	}
 
 	sub __ARRAY_indexes_order
@@ -63,12 +55,30 @@ use base qw/DDT/;
 			# Model::_entries order
 			0 .. $#$model;
 		}
-		elsif ($path =~ / Model::_entry->{tags} ARRAY$/s){
+		elsif ($path =~ / Model::_entry HASH->{tags} ARRAY$/s){
 			# tags order
 			0 .. $#$model;
 		}
 		else {
-			die $path;
+			### default order (as is) at: $path
+			$self->SUPER::__ARRAY_indexes_order($model, $path);
+		}
+	}
+
+	sub __HASH_keys_order
+	{
+		my $self = shift;
+		my($model, $path) = @_;
+		### assert: ref $model eq 'HASH'
+		### assert: $path =~ / HASH$/s
+		
+		if ($path =~ / Model::_entries ARRAY->\[\d+\] Model::_entry HASH$/s){
+			# Model::_entry elements order
+			qw/title body tags/;
+		}
+		else {
+			### default order (not defined) at: $path
+			keys %$model;
 		}
 	}
 
@@ -81,20 +91,20 @@ use base qw/DDT/;
 		my $ret;
 		
 		# Markup
-		if ($path =~ / Model::_entry->{title}$/s){
+		if ($path =~ / Model::_entry HASH->{title}$/s){
 			### [markup Title]
 			$ret .= qq{\n  <div class="title"> \n $model \n  </div> \n};
 		}
-		elsif ($path =~ / Model::_entry->{body}$/s){
+		elsif ($path =~ / Model::_entry HASH->{body}$/s){
 			### [markup Body]
 			$ret .= qq{\n  <div class="body"> \n $model \n  </div> \n};
 		}
-		elsif ($path =~ / Model::_entry->{tags} ARRAY->\[\d+\]$/s){
+		elsif ($path =~ / Model::_entry HASH->{tags} ARRAY->\[\d+\]$/s){
 			### [markup Tag]
 			$ret .= qq{ <span class="tag"> $model </span> };
 		}
 		else {
-			$ret .= $model;
+			$ret .= " !$model! ";
 		}
 		
 		$ret;
